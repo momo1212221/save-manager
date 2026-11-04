@@ -12,18 +12,18 @@
   },
   "id": "save-manager",
   "name": "Save Manager",
-  "description": "Controller-accessible quick-save slot selection and save-slot inspection using the game's real autosave path.",
+  "description": "Manual save-to-current-slot plus controller-accessible save-slot inspection using OpenRAC real save APIs.",
   "hooks": [
     "rac1.save.request_autosave"
   ],
   "settings": [
     {
-      "key": "default_slot",
-      "name": "Default quick-save slot (1-8)",
+      "key": "default_inspection_slot",
+      "name": "Default inspection slot (1-5)",
       "type": "int",
       "default": 1,
       "min": 1,
-      "max": 8,
+      "max": 5,
       "step": 1
     }
   ]

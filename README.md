@@ -1,11 +1,11 @@
 # Save Manager
 
-Controller-accessible save-slot tools using RAC1's real autosave function.
+Safe controller-accessible save tools for RAC1.
 
-- L2 + R2 + Up/Down: select slot 1-8
-- L2 + R2 + Square: request a save into the selected slot
-- L2 + R2 + Select: inspect the selected slot (planet and bolts)
+- L2 + R2 + Up/Down: browse the game's real save slots.
+- L2 + R2 + Select: inspect the selected slot (planet, bolts, gold bolts, active marker).
+- L2 + R2 + Square: request an autosave to the game's current active save slot.
 
-Loading stays in the game's normal Load Game flow in v0.1.0.
+The selected inspection slot is never treated as a write target. OpenRAC 1.11 save_slot_current() identifies the actual save file the running game belongs to. A new game that has never been saved must first use the normal Save Game flow before manual saving is enabled.
 
 Built for OpenRAC RAC1 PAL/NTSC-U. AI-assisted implementation. GPL-3.0-or-later.
