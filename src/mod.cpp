@@ -7,6 +7,7 @@
 
 namespace {
 openrac::Mod* g=nullptr;
+openrac::rac1::Save_RequestAutosave::fn request_autosave=nullptr;
 std::uint16_t previous=0;
 int selected=0;
 int action=0;
@@ -45,8 +46,8 @@ void load(openrac::Mod& mod){
     g=&mod;
     selected=std::clamp(static_cast<int>(mod.setting<std::int64_t>("default_inspection_slot"))-1,0,4);
 
-    mod.hook<openrac::rac1::Save_RequestAutosave>(
-        [](auto original,std::int32_t slot,std::int32_t flags){ return original(slot,flags); }
+    request_autosave=mod.required_function<openrac::rac1::Save_RequestAutosave::fn>(
+        openrac::rac1::Save_RequestAutosave::name
     );
 
     mod.on_pad([](int port,std::uint8_t* report,int size){
@@ -101,12 +102,11 @@ void load(openrac::Mod& mod){
             if(g->has_notice()) g->play_notice("No active save slot - use the normal Save Game flow first");
             return;
         }
-        auto fn=g->original<openrac::rac1::Save_RequestAutosave>();
-        if(fn==nullptr){
+        if(request_autosave==nullptr){
             if(g->has_notice()) g->play_notice("Save function unavailable");
             return;
         }
-        fn(0,-1);
+        request_autosave(0,-1);
         if(g->has_notice()) g->play_notice("Save requested for active slot "+std::to_string(active+1));
     });
 

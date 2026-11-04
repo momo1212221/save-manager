@@ -13,9 +13,6 @@
   "id": "save-manager",
   "name": "Save Manager",
   "description": "Manual save-to-current-slot plus controller-accessible save-slot inspection using OpenRAC real save APIs.",
-  "hooks": [
-    "rac1.save.request_autosave"
-  ],
   "settings": [
     {
       "key": "default_inspection_slot",
