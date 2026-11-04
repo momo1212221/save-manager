@@ -1,6 +1,6 @@
 {
   "format": 2,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "mo",
   "license": "GPL-3.0-or-later",
   "api": "1.9",
@@ -12,7 +12,7 @@
   },
   "id": "save-manager",
   "name": "Save Manager",
-  "description": "Manual save-to-current-slot plus controller-accessible save-slot inspection using OpenRAC real save APIs.",
+  "description": "Controller-accessible save-slot inspection on API 1.10, plus safe manual save-to-current-slot on API 1.11+.",
   "settings": [
     {
       "key": "default_inspection_slot",

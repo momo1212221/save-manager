@@ -46,9 +46,14 @@ void load(openrac::Mod& mod){
     g=&mod;
     selected=std::clamp(static_cast<int>(mod.setting<std::int64_t>("default_inspection_slot"))-1,0,4);
 
-    request_autosave=mod.required_function<openrac::rac1::Save_RequestAutosave::fn>(
-        openrac::rac1::Save_RequestAutosave::name
-    );
+    if(mod.has_api_11()){
+        request_autosave=mod.required_function<openrac::rac1::Save_RequestAutosave::fn>(
+            openrac::rac1::Save_RequestAutosave::name
+        );
+    }else{
+        request_autosave=nullptr;
+        mod.info("API 1.10: slot inspection enabled; manual save needs API 1.11+");
+    }
 
     mod.on_pad([](int port,std::uint8_t* report,int size){
         if(port!=0 || report==nullptr || size<2) return;
@@ -112,4 +117,4 @@ void load(openrac::Mod& mod){
 
     mod.info("L2+R2+Up/Down inspect slots; Square saves ACTIVE slot; Select shows info");
 }
-OPENRAC_MOD_CPP("save-manager","0.1.0",load)
+OPENRAC_MOD_CPP("save-manager","0.1.1",load)
