@@ -11,6 +11,14 @@ openrac::rac1::Save_RequestAutosave::fn request_autosave=nullptr;
 std::uint16_t previous=0;
 int selected=0;
 int action=0;
+int notice_frames=0;
+
+void notice(const std::string& text){
+    if(g!=nullptr && g->has_notice()){
+        g->play_notice(text);
+        notice_frames=120;
+    }
+}
 
 int slot_count(){
     for(int i=0;i<16;++i){
@@ -23,7 +31,7 @@ int slot_count(){
 void show_slot(){
     const int count=slot_count();
     if(count<=0){
-        if(g->has_notice()) g->play_notice("No save slots available");
+        notice("No save slots available");
         return;
     }
     selected=qol::wrap_index(selected,count,0);
@@ -37,7 +45,7 @@ void show_slot(){
         text+="empty";
     }
     if(g->has_api_11() && g->save_slot_current()==selected) text+=" | ACTIVE";
-    if(g->has_notice()) g->play_notice(text);
+    notice(text);
 }
 }
 
@@ -82,6 +90,7 @@ void load(openrac::Mod& mod){
     });
 
     mod.on_frame([]{
+        if(notice_frames>0 && --notice_frames==0 && g->has_notice()) g->play_notice("");
         if(action==-1 || action==1){
             const int count=slot_count();
             if(count>0) selected=qol::wrap_index(selected,count,action);
@@ -99,26 +108,26 @@ void load(openrac::Mod& mod){
 
         const auto status=g->play_status();
         if(status.phase!=OPENRAC_PLAY_PLAYING){
-            if(g->has_notice()) g->play_notice("Manual save is available while playing");
+            notice("Manual save is available while playing");
             return;
         }
         if(!g->has_api_11()){
-            if(g->has_notice()) g->play_notice("Manual save requires OpenRAC interface 1.11+");
+            notice("Manual save requires OpenRAC interface 1.11+");
             return;
         }
         const int active=g->save_slot_current();
         if(active<0){
-            if(g->has_notice()) g->play_notice("No active save slot - use the normal Save Game flow first");
+            notice("No active save slot - use the normal Save Game flow first");
             return;
         }
         if(request_autosave==nullptr){
-            if(g->has_notice()) g->play_notice("Save function unavailable");
+            notice("Save function unavailable");
             return;
         }
         request_autosave(0,-1);
-        if(g->has_notice()) g->play_notice("Save requested for active slot "+std::to_string(active+1));
+        notice("Save requested for active slot "+std::to_string(active+1));
     });
 
     mod.info("L2+R2+Up/Down inspect slots; Square saves ACTIVE slot; Select shows info");
 }
-OPENRAC_MOD_CPP("save-manager","0.1.2",load)
+OPENRAC_MOD_CPP("save-manager","0.1.3",load)
