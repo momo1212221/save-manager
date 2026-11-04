@@ -1,4 +1,3 @@
-#include <algorithm>
 #include <cstdint>
 #include <string>
 #include "openrac/mod.hpp"
@@ -7,18 +6,11 @@
 
 namespace {
 openrac::Mod* g=nullptr;
+openrac::UiPage page;
 openrac::rac1::Save_RequestAutosave::fn request_autosave=nullptr;
 std::uint16_t previous=0;
-int selected=0;
-int action=0;
-int notice_frames=0;
-
-void notice(const std::string& text){
-    if(g!=nullptr && g->has_notice()){
-        g->play_notice(text);
-        notice_frames=120;
-    }
-}
+bool open_requested=false;
+bool pending_save=false;
 
 int slot_count(){
     for(int i=0;i<16;++i){
@@ -27,107 +19,68 @@ int slot_count(){
     }
     return 16;
 }
-
-void show_slot(){
-    const int count=slot_count();
-    if(count<=0){
-        notice("No save slots available");
-        return;
-    }
-    selected=qol::wrap_index(selected,count,0);
-    openrac_save_info info{};
-    const int state=g->save_slot(selected,info);
-    std::string text="Save slot "+std::to_string(selected+1)+": ";
-    if(state==1){
-        text+=g->level_name(info.level)+" | "+std::to_string(info.bolts)+" bolts | "
-              +std::to_string(info.gold_bolts)+" gold";
-    }else{
-        text+="empty";
-    }
-    if(g->has_api_11() && g->save_slot_current()==selected) text+=" | ACTIVE";
-    notice(text);
-}
 }
 
 void load(openrac::Mod& mod){
     if(mod.game()!="rac1" || !mod.has_play()) throw openrac::Error("Save Manager requires RAC1 play API");
     g=&mod;
-    selected=std::clamp(static_cast<int>(mod.setting<std::int64_t>("default_inspection_slot"))-1,0,4);
-
     if(mod.has_api_11()){
         request_autosave=mod.required_function<openrac::rac1::Save_RequestAutosave::fn>(
             openrac::rac1::Save_RequestAutosave::name
         );
-    }else{
-        request_autosave=nullptr;
-        mod.info("API 1.10: slot inspection enabled; manual save needs API 1.11+");
     }
+
+    page=mod.ui_page([&mod](const openrac::UiPage& p,const openrac::UiEvent& event){
+        openrac::UiContent c;
+        c.title="Save Manager";
+        const int count=slot_count();
+        for(int i=0;i<count;++i){
+            openrac_save_info info{};
+            const int state=mod.save_slot(i,info);
+            std::string text="Slot "+std::to_string(i+1)+": ";
+            if(state==1){
+                text+=mod.level_name(info.level)+" | "+std::to_string(info.bolts)+" bolts | "
+                     +std::to_string(info.gold_bolts)+" gold";
+            }else{
+                text+="empty";
+            }
+            if(mod.has_api_11() && mod.save_slot_current()==i) text+=" | ACTIVE";
+            c.items.push_back(openrac::UiItem::text(text));
+        }
+
+        const bool can_save=mod.has_api_11() && request_autosave!=nullptr && mod.save_slot_current()>=0;
+        const int save_item=static_cast<int>(c.items.size());
+        c.items.push_back(openrac::UiItem::button("Save active slot",can_save));
+        c.footer={
+            mod.has_api_11() ? "Uses the game's active save slot" : "Manual save requires OpenRAC API 1.11+",
+            "L2 + R2 + Select opens this page"
+        };
+        p.set(c);
+
+        if(event.is(OPENRAC_UI_CHOOSE) && event.item()==save_item && can_save){
+            pending_save=true;
+            p.back();
+        }
+    });
 
     mod.on_pad([](int port,std::uint8_t* report,int size){
         if(port!=0 || report==nullptr || size<2) return;
         const auto now=qol::pad_buttons(report);
-        const auto previous_slot=static_cast<std::uint16_t>(
-            OPENRAC_PAD_L2|OPENRAC_PAD_R2|OPENRAC_PAD_UP
-        );
-        const auto next_slot=static_cast<std::uint16_t>(
-            OPENRAC_PAD_L2|OPENRAC_PAD_R2|OPENRAC_PAD_DOWN
-        );
-        const auto save=static_cast<std::uint16_t>(
-            OPENRAC_PAD_L2|OPENRAC_PAD_R2|OPENRAC_PAD_SQUARE
-        );
-        const auto info=static_cast<std::uint16_t>(
-            OPENRAC_PAD_L2|OPENRAC_PAD_R2|OPENRAC_PAD_SELECT
-        );
-        if(qol::combo_pressed(now,previous,previous_slot)) action=-1;
-        if(qol::combo_pressed(now,previous,next_slot)) action=1;
-        if(qol::combo_pressed(now,previous,save)) action=2;
-        if(qol::combo_pressed(now,previous,info)) action=3;
-        if((now&previous_slot)==previous_slot) qol::consume_buttons(report,previous_slot);
-        if((now&next_slot)==next_slot) qol::consume_buttons(report,next_slot);
-        if((now&save)==save) qol::consume_buttons(report,save);
-        if((now&info)==info) qol::consume_buttons(report,info);
+        const auto mask=static_cast<std::uint16_t>(OPENRAC_PAD_L2|OPENRAC_PAD_R2|OPENRAC_PAD_SELECT);
+        if(qol::combo_pressed(now,previous,mask)) open_requested=true;
+        if((now&mask)==mask) qol::consume_buttons(report,mask);
         previous=now;
     });
 
     mod.on_frame([]{
-        if(notice_frames>0 && --notice_frames==0 && g->has_notice()) g->play_notice("");
-        if(action==-1 || action==1){
-            const int count=slot_count();
-            if(count>0) selected=qol::wrap_index(selected,count,action);
-            action=0;
-            show_slot();
-            return;
+        if(open_requested){
+            open_requested=false;
+            page.open();
         }
-        if(action==3){
-            action=0;
-            show_slot();
-            return;
+        if(pending_save && g->play_status().phase==OPENRAC_PLAY_PLAYING){
+            pending_save=false;
+            request_autosave(0,-1);
         }
-        if(action!=2) return;
-        action=0;
-
-        const auto status=g->play_status();
-        if(status.phase!=OPENRAC_PLAY_PLAYING){
-            notice("Manual save is available while playing");
-            return;
-        }
-        if(!g->has_api_11()){
-            notice("Manual save requires OpenRAC interface 1.11+");
-            return;
-        }
-        const int active=g->save_slot_current();
-        if(active<0){
-            notice("No active save slot - use the normal Save Game flow first");
-            return;
-        }
-        if(request_autosave==nullptr){
-            notice("Save function unavailable");
-            return;
-        }
-        request_autosave(0,-1);
-        notice("Save requested for active slot "+std::to_string(active+1));
     });
-
-    mod.info("L2+R2+Up/Down inspect slots; Square saves ACTIVE slot; Select shows info");
 }
-OPENRAC_MOD_CPP("save-manager","0.1.3",load)
+OPENRAC_MOD_CPP("save-manager","0.2.0",load)
