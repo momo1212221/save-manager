@@ -74,6 +74,10 @@ void load(openrac::Mod& mod){
         if(qol::combo_pressed(now,previous,next_slot)) action=1;
         if(qol::combo_pressed(now,previous,save)) action=2;
         if(qol::combo_pressed(now,previous,info)) action=3;
+        if((now&previous_slot)==previous_slot) qol::consume_buttons(report,previous_slot);
+        if((now&next_slot)==next_slot) qol::consume_buttons(report,next_slot);
+        if((now&save)==save) qol::consume_buttons(report,save);
+        if((now&info)==info) qol::consume_buttons(report,info);
         previous=now;
     });
 
@@ -117,4 +121,4 @@ void load(openrac::Mod& mod){
 
     mod.info("L2+R2+Up/Down inspect slots; Square saves ACTIVE slot; Select shows info");
 }
-OPENRAC_MOD_CPP("save-manager","0.1.1",load)
+OPENRAC_MOD_CPP("save-manager","0.1.2",load)

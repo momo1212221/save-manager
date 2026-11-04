@@ -14,4 +14,8 @@ inline int wrap_index(int index,int count,int delta){
  if(x<0)x+=count;
  return x;
 }
+inline void consume_buttons(std::uint8_t* report, std::uint16_t mask) {
+    report[0] = static_cast<std::uint8_t>(report[0] | (mask & 0xffu));
+    report[1] = static_cast<std::uint8_t>(report[1] | ((mask >> 8) & 0xffu));
+}
 }
