@@ -32,12 +32,12 @@ void load(openrac::Mod& mod){
     mod.on_pad([](int port,std::uint8_t* report,int size){
         if(port!=0 || report==nullptr || size<2) return;
         const auto now=qol::pad_buttons(report);
-        const auto left=static_cast<std::uint16_t>(OPENRAC_PAD_L2|OPENRAC_PAD_R2|OPENRAC_PAD_LEFT);
-        const auto right=static_cast<std::uint16_t>(OPENRAC_PAD_L2|OPENRAC_PAD_R2|OPENRAC_PAD_RIGHT);
+        const auto previous_slot=static_cast<std::uint16_t>(OPENRAC_PAD_L2|OPENRAC_PAD_R2|OPENRAC_PAD_UP);
+        const auto next_slot=static_cast<std::uint16_t>(OPENRAC_PAD_L2|OPENRAC_PAD_R2|OPENRAC_PAD_DOWN);
         const auto save=static_cast<std::uint16_t>(OPENRAC_PAD_L2|OPENRAC_PAD_R2|OPENRAC_PAD_SQUARE);
-        const auto info=static_cast<std::uint16_t>(OPENRAC_PAD_L2|OPENRAC_PAD_R2|OPENRAC_PAD_TRIANGLE);
-        if(qol::combo_pressed(now,previous,left)) action=-1;
-        if(qol::combo_pressed(now,previous,right)) action=1;
+        const auto info=static_cast<std::uint16_t>(OPENRAC_PAD_L2|OPENRAC_PAD_R2|OPENRAC_PAD_SELECT);
+        if(qol::combo_pressed(now,previous,previous_slot)) action=-1;
+        if(qol::combo_pressed(now,previous,next_slot)) action=1;
         if(qol::combo_pressed(now,previous,save)) action=2;
         if(qol::combo_pressed(now,previous,info)) action=3;
         previous=now;
@@ -55,6 +55,6 @@ void load(openrac::Mod& mod){
             } else if(g->has_notice()) g->play_notice("Quick save is available while playing");
         }
     });
-    mod.info("L2+R2+Left/Right slot; Square save; Triangle inspect");
+    mod.info("L2+R2+Up/Down slot; Square save; Select inspect");
 }
 OPENRAC_MOD_CPP("save-manager","0.1.0",load)
